@@ -1,69 +1,40 @@
 #!/usr/bin/env python3
-
+"""Representation of Authentication class
+"""
+from flask import request
 from typing import List, TypeVar
-from flask import Flask, request
+import re
 
 
 class Auth:
-    ''' A Class to manage the API authentication.
-    '''
-
-    def require_auth(
-            self,
-            path: str,
-            excluded_paths: List[str]
-            ) -> bool:
-        ''' Required auth
-        '''
-        if path is None or excluded_paths is None or not excluded_paths:
-            return True
-
-        # handle * at end of excluded paths
-        if path[-1] == '/':
-            path = path[:-1]
-
-        contains_slash = False
-        for excluded_path in excluded_paths:
-            if excluded_path[-1] == '/':
-                excluded_path = excluded_path[:-1]
-                contains_slash = True
-
-            if excluded_path.endswith('*'):
-                idx_after_last_slash = excluded_path.rfind('/') + 1
-                excluded = excluded_path[idx_after_last_slash:-1]
-
-                idx_after_last_slash = path.rfind('/') + 1
-                tmp_path = path[idx_after_last_slash:]
-
-                if excluded in tmp_path:
+    """Auth class
+    """
+    def require_auth(self, path: str, excluded_paths: List[str]) -> bool:
+        """ Require authentication
+        """
+        if path is not None and excluded_paths is not None:
+            for exc_path in map(lambda x: x.strip(), excluded_paths):
+                pattern = ''
+                if exc_path[-1] == "*":
+                    pattern = "{}.*".format(exc_path[0:-1])
+                elif exc_path[-1] == "/":
+                    pattern = "{}/*".format(exc_path[0:-1])
+                else:
+                    pattern = "{}/*".format(exc_path)
+                if re.match(pattern, path):
                     return False
-
-            if contains_slash:
-                contains_slash = False
-
-        path += '/'
-
-        if path in excluded_paths:
-            return False
-
         return True
 
-    def authorization_header(
-            self,
-            request=None
-            ) -> str:
-        '''Auth header
-        '''
+    def authorization_header(self, request=None) -> str:
+        """ Authorization header
+        """
         if request is None:
             return None
-
+        if 'Authorization' not in request.headers:
+            return None
         return request.headers.get('Authorization')
 
-    def current_user(
-            self,
-            request=None
-            ) -> TypeVar('User'):
-        ''' Current User
-        '''
-        request = Flask(__name__)
+    def current_user(self, request=None) -> TypeVar('User'):
+        """Get current user
+        """
         return None
